@@ -1,0 +1,21 @@
+---
+- name: Prepare
+  hosts: all
+  vars:
+    pip_install_packages:
+      - name: more_itertools<6.0
+      - name: docker
+      - name: docker_compose
+  tasks:
+    - name: install dependencies
+      package:
+        name: "{{ item }}"
+      with_items:
+        - python-devel
+        - python-virtualenv
+        - gcc
+        - libffi-devel
+    - include_role:
+        name: geerlingguy.pip
+    - include_role:
+        name: geerlingguy.docker
