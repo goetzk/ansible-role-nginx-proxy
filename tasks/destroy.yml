@@ -1,0 +1,9 @@
+---
+
+- name: remove containers
+  docker_container:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - nginx_proxy
+    - letsencrypt_nginx
