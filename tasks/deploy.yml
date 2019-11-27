@@ -1,5 +1,33 @@
 ---
-# move this to own role ?
+
+- name: Ensure nginx proxy config directory exists
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0770
+  with_items:
+    - /etc/nginx-proxy
+    - /etc/nginx-proxy/htpasswd
+  become: true
+
+- name: copy htpasswd file to remote host
+  copy:
+    src: "{{ item.value }}"
+    dest: /etc/nginx-proxy/htpasswd/{{ item.key }}
+    owner: 101
+    group: 101
+    mode: 0660
+  become: true
+  with_dict: "{{ nginx_proxy_htpasswd_files }} "
+
+- name: create volumes
+  docker_volume:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ nginx_proxy_volume_names }}"
+
 - name: start nginx proxy
   docker_container:
     name: nginx_proxy
@@ -7,13 +35,9 @@
     ports:
       - "443:443"
       - "80:80"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      # next three are for letsencrypt-nginx-proxy-companion
-      - /etc/nginx/certs
-      - /etc/nginx/vhost.d
-      - /usr/share/nginx/html
+    volumes: "{{ nginx_proxy_volumes }}"
     state: started
+    restart_policy: always
     env:
       # to use letsencrypt companion
       DHPARAM_GENERATION: "false"
@@ -28,9 +52,13 @@
   when: nginx_result.changed
 
 - name: start letsencrypt-nginx-proxy-companion
+  vars:
+    extra_volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
   docker_container:
     name: letsencrypt_nginx
+    restart_policy: always
     image: jrcs/letsencrypt-nginx-proxy-companion
-    volumes_from: nginx_proxy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+    volumes: "{{ nginx_proxy_volumes + extra_volumes }}"
+    env:
+      NGINX_PROXY_CONTAINER: nginx_proxy

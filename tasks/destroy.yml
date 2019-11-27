@@ -7,3 +7,9 @@
   with_items:
     - nginx_proxy
     - letsencrypt_nginx
+
+- name: remove volumes
+  docker_volume:
+    name: "{{ item }}"
+    state: absent
+  with_items: "{{ nginx_proxy_volume_names }}"
