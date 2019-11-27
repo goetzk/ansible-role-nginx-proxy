@@ -1,5 +1,4 @@
 ---
-
 - name: remove containers
   docker_container:
     name: "{{ item }}"
